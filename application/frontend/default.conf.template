@@ -1,0 +1,32 @@
+server {
+  # Unprivileged nginx listens on 8080 (no root required to bind the port).
+  listen 8080;
+  server_name _;
+  root /usr/share/nginx/html;
+  index index.html;
+
+  # Serve the single-page application; fall back to index.html for client routes.
+  location / {
+    try_files $uri /index.html;
+  }
+
+  # Proxy API calls to the backend. BACKEND_HOST is substituted at container start:
+  #   - Docker Compose:  BACKEND_HOST=backend
+  #   - Kubernetes:      BACKEND_HOST=taskboard-backend
+  # Using a resolver + variable means nginx starts even if the backend is not up yet.
+  location /api/ {
+    resolver ${DNS_RESOLVER} valid=10s;
+    set $backend_upstream "${BACKEND_HOST}:8000";
+    proxy_pass http://$backend_upstream;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+
+  location = /health {
+    resolver ${DNS_RESOLVER} valid=10s;
+    set $backend_health "${BACKEND_HOST}:8000";
+    proxy_pass http://$backend_health/health;
+  }
+}
