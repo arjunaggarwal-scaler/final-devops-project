@@ -1,0 +1,50 @@
+# Lean kube-prometheus-stack values for a single-node kind cluster on a shared
+# 16 GB machine. We trim retention/replicas and disable the heavy node-exporter
+# and kube-state add-ons we don't need for the app-metrics demo.
+fullnameOverride: kps
+
+alertmanager:
+  enabled: false
+
+grafana:
+  enabled: true
+  adminPassword: admin
+  defaultDashboardsEnabled: false
+  resources:
+    requests: { cpu: 50m, memory: 96Mi }
+    limits: { cpu: 300m, memory: 256Mi }
+  # Auto-load the custom TaskBoard dashboard from a ConfigMap.
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+
+prometheus:
+  prometheusSpec:
+    retention: 2h
+    replicas: 1
+    scrapeInterval: 30s
+    # Discover ServiceMonitors in any namespace regardless of Helm-release labels.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorNamespaceSelector: {}
+    ruleSelectorNilUsesHelmValues: false
+    resources:
+      requests: { cpu: 100m, memory: 400Mi }
+      limits: { cpu: 500m, memory: 700Mi }
+
+# Trim cluster-level collectors to keep memory low on the shared box.
+nodeExporter:
+  enabled: false
+kubeStateMetrics:
+  enabled: false
+prometheus-node-exporter:
+  enabled: false
+kube-state-metrics:
+  enabled: false
+defaultRules:
+  create: false
+
+prometheusOperator:
+  resources:
+    requests: { cpu: 50m, memory: 96Mi }
+    limits: { cpu: 200m, memory: 256Mi }
