@@ -1,0 +1,43 @@
+name: final-devops-project
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: s21-postgres
+    environment:
+      POSTGRES_DB: taskboard
+      POSTGRES_USER: taskboard
+      POSTGRES_PASSWORD: taskboard
+    ports:
+      - "22132:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskboard -d taskboard"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./application/backend
+    image: s21-taskboard-backend:local
+    container_name: s21-backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://taskboard:taskboard@postgres:5432/taskboard
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "22108:8000"
+
+  frontend:
+    build: ./application/frontend
+    image: s21-taskboard-frontend:local
+    container_name: s21-frontend
+    depends_on:
+      - backend
+    ports:
+      - "22130:8080"
+
+volumes:
+  postgres-data:
