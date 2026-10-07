@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: taskboard
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  # Track the Helm chart that lives in the public GitHub repository.
+  source:
+    repoURL: https://github.com/arjunaggarwal-scaler/final-devops-project.git
+    targetRevision: main
+    path: helm/taskboard
+    helm:
+      valueFiles:
+        - values.yaml
+      # In-cluster demo overrides: the images are loaded into kind as :local.
+      parameters:
+        - name: backend.tag
+          value: local
+        - name: frontend.tag
+          value: local
+        - name: backend.pullPolicy
+          value: IfNotPresent
+        - name: frontend.pullPolicy
+          value: IfNotPresent
+        - name: ingress.enabled
+          value: "true"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: taskboard
+  syncPolicy:
+    # Automated GitOps: Argo CD reconciles the cluster to match Git automatically.
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

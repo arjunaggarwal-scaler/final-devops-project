@@ -1,0 +1,31 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: taskboard-alerts
+  namespace: monitoring
+  labels:
+    release: kps
+spec:
+  groups:
+    - name: taskboard.rules
+      rules:
+        # Fire when the backend stops exposing metrics (scrape target down).
+        - alert: TaskBoardBackendDown
+          expr: up{job=~".*taskboard.*"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "TaskBoard backend target is down"
+            description: "Prometheus cannot scrape the TaskBoard backend for over 1 minute."
+        # Fire when the backend 5xx error rate is elevated.
+        - alert: TaskBoardHighErrorRate
+          expr: |
+            sum(rate(http_requests_total{job=~".*taskboard.*", status=~"5.."}[5m]))
+              / sum(rate(http_requests_total{job=~".*taskboard.*"}[5m])) > 0.05
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Elevated 5xx error rate on TaskBoard backend"
+            description: "More than 5% of requests are returning 5xx over the last 5 minutes."
