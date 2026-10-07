@@ -90,21 +90,17 @@ jobs:
           npm audit --audit-level=critical || true
 
       # --- SCA: Trivy filesystem scan (deps + IaC misconfig) ---
+      # Run Trivy from its official image to avoid the flaky setup-trivy binary download.
       - name: SCA - Trivy filesystem
-        uses: aquasecurity/trivy-action@v0.33.1
-        with:
-          scan-type: fs
-          scan-ref: .
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: "0"
+        run: |
+          docker run --rm -v "$PWD:/src" public.ecr.aws/aquasecurity/trivy:0.58.2 fs \
+            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 0 --no-progress /src
 
-      # --- Secret scanning: Gitleaks ---
+      # --- Secret scanning: Gitleaks (official image, no marketplace licensing needed) ---
       - name: Secret scan - Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_CONFIG: security/gitleaks.toml
+        run: |
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.21.2 detect \
+            --source=/repo --config=/repo/security/gitleaks.toml --no-banner --redact -v
 
   # ---------------------------------------------------------------------------
   # 3. Build, image-scan (security gate), and push to GHCR with SHA tags
@@ -133,21 +129,20 @@ jobs:
         run: docker build -t "$FRONTEND_IMAGE:${{ github.sha }}" application/frontend
 
       # --- Security gate: fail on HIGH/CRITICAL CVEs in either image ---
+      # Trivy runs from its official image and mounts the Docker socket to scan local images.
       - name: Image scan - Trivy (backend)
-        uses: aquasecurity/trivy-action@v0.33.1
-        with:
-          image-ref: ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: "1"
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            public.ecr.aws/aquasecurity/trivy:0.58.2 image \
+            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress \
+            "$BACKEND_IMAGE:${{ github.sha }}"
 
       - name: Image scan - Trivy (frontend)
-        uses: aquasecurity/trivy-action@v0.33.1
-        with:
-          image-ref: ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: "1"
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            public.ecr.aws/aquasecurity/trivy:0.58.2 image \
+            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress \
+            "$FRONTEND_IMAGE:${{ github.sha }}"
 
       - name: Push images (SHA-tagged)
         if: github.ref == 'refs/heads/main'
