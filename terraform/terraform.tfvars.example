@@ -1,0 +1,16 @@
+# Copy to terraform.tfvars and adjust.
+# ---- LocalStack (default for this capstone — no AWS account needed) ----
+use_localstack      = true
+localstack_endpoint = "http://localhost:4566"
+aws_access_key      = "test"
+aws_secret_key      = "test"
+aws_region          = "us-east-1"
+environment         = "dev"
+name_prefix         = "arjun-s21"
+enable_ecr          = false   # LocalStack Community does not emulate ECR
+
+# ---- Real AWS (uncomment and supply real credentials via env, not this file) ----
+# use_localstack = false
+# enable_ecr     = true
+# aws_region     = "ap-south-1"
+# (export AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY in the shell, never commit them)
