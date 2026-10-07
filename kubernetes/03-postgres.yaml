@@ -1,0 +1,89 @@
+---
+# PersistentVolumeClaim — durable storage for the PostgreSQL data directory.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: taskboard-postgres-data
+  namespace: taskboard
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: taskboard-postgres
+  namespace: taskboard
+spec:
+  selector:
+    app: taskboard-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: taskboard-postgres
+  namespace: taskboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: taskboard-postgres
+  template:
+    metadata:
+      labels:
+        app: taskboard-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: taskboard-config
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: taskboard-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: taskboard-secret
+                  key: POSTGRES_PASSWORD
+            # PGDATA in a sub-path avoids the "lost+found" init error on some volumes.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: taskboard-postgres-data

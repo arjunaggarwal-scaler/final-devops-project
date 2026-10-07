@@ -1,0 +1,79 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: taskboard-backend
+  namespace: taskboard
+  labels:
+    app: taskboard-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: taskboard-backend
+  template:
+    metadata:
+      labels:
+        app: taskboard-backend
+    spec:
+      containers:
+        - name: backend
+          # Overwritten at deploy time with the GHCR image + SHA tag. The kind demo
+          # loads a locally built image tagged :local.
+          image: ghcr.io/arjunaggarwal-scaler/final-devops-project-backend:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: taskboard-secret
+                  key: DATABASE_URL
+            - name: APP_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: taskboard-config
+                  key: APP_NAME
+          # Startup probe gives Alembic migrations time before liveness kicks in.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            failureThreshold: 30
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: taskboard-backend
+  namespace: taskboard
+  labels:
+    app: taskboard-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: taskboard-backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000

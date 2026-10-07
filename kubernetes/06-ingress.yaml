@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: taskboard
+  namespace: taskboard
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: taskboard.local
+      http:
+        paths:
+          # /api and /metrics are served by the backend Service (port 8000).
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: taskboard-backend
+                port:
+                  number: 8000
+          - path: /metrics
+            pathType: Prefix
+            backend:
+              service:
+                name: taskboard-backend
+                port:
+                  number: 8000
+          # Everything else goes to the frontend Service (port 80 -> container 8080).
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: taskboard-frontend
+                port:
+                  number: 80

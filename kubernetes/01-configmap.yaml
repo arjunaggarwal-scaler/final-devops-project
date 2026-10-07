@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: taskboard-config
+  namespace: taskboard
+data:
+  # Non-secret application configuration consumed by the backend.
+  APP_NAME: "TaskBoard API"
+  POSTGRES_HOST: "taskboard-postgres"
+  POSTGRES_DB: "taskboard"
+  POSTGRES_PORT: "5432"

@@ -1,0 +1,64 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: taskboard-frontend
+  namespace: taskboard
+  labels:
+    app: taskboard-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: taskboard-frontend
+  template:
+    metadata:
+      labels:
+        app: taskboard-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/arjunaggarwal-scaler/final-devops-project-frontend:local
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: BACKEND_HOST
+              value: "taskboard-backend"
+            - name: DNS_RESOLVER
+              value: "10.96.0.10"
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: taskboard-frontend
+  namespace: taskboard
+  labels:
+    app: taskboard-frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: taskboard-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
