@@ -91,7 +91,7 @@ jobs:
 
       # --- SCA: Trivy filesystem scan (deps + IaC misconfig) ---
       - name: SCA - Trivy filesystem
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: fs
           scan-ref: .
@@ -134,7 +134,7 @@ jobs:
 
       # --- Security gate: fail on HIGH/CRITICAL CVEs in either image ---
       - name: Image scan - Trivy (backend)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           image-ref: ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
           severity: HIGH,CRITICAL
@@ -142,7 +142,7 @@ jobs:
           exit-code: "1"
 
       - name: Image scan - Trivy (frontend)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           image-ref: ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
           severity: HIGH,CRITICAL
