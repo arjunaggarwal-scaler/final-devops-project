@@ -89,12 +89,20 @@ jobs:
           npm install --package-lock-only
           npm audit --audit-level=critical || true
 
+      # --- Install the Trivy binary from Aqua's official apt repo (no Docker pulls / rate limits) ---
+      - name: Install Trivy
+        run: |
+          sudo apt-get install -y wget apt-transport-https gnupg
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install -y trivy
+          trivy --version
+
       # --- SCA: Trivy filesystem scan (deps + IaC misconfig) ---
-      # Run Trivy from its official image to avoid the flaky setup-trivy binary download.
       - name: SCA - Trivy filesystem
         run: |
-          docker run --rm -v "$PWD:/src" public.ecr.aws/aquasecurity/trivy:0.58.2 fs \
-            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 0 --no-progress /src
+          trivy fs --severity HIGH,CRITICAL --ignore-unfixed --exit-code 0 --no-progress .
 
       # --- Secret scanning: Gitleaks (official image, no marketplace licensing needed) ---
       - name: Secret scan - Gitleaks
@@ -128,20 +136,25 @@ jobs:
       - name: Build frontend image
         run: docker build -t "$FRONTEND_IMAGE:${{ github.sha }}" application/frontend
 
+      # --- Install the Trivy binary from Aqua's official apt repo ---
+      - name: Install Trivy
+        run: |
+          sudo apt-get install -y wget apt-transport-https gnupg
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install -y trivy
+          trivy --version
+
       # --- Security gate: fail on HIGH/CRITICAL CVEs in either image ---
-      # Trivy runs from its official image and mounts the Docker socket to scan local images.
       - name: Image scan - Trivy (backend)
         run: |
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-            public.ecr.aws/aquasecurity/trivy:0.58.2 image \
-            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress \
+          trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress \
             "$BACKEND_IMAGE:${{ github.sha }}"
 
       - name: Image scan - Trivy (frontend)
         run: |
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-            public.ecr.aws/aquasecurity/trivy:0.58.2 image \
-            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress \
+          trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress \
             "$FRONTEND_IMAGE:${{ github.sha }}"
 
       - name: Push images (SHA-tagged)

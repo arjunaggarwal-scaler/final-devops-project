@@ -11,8 +11,8 @@ grafana:
   adminPassword: admin
   defaultDashboardsEnabled: false
   resources:
-    requests: { cpu: 50m, memory: 96Mi }
-    limits: { cpu: 300m, memory: 256Mi }
+    requests: { cpu: 50m, memory: 160Mi }
+    limits: { cpu: 400m, memory: 512Mi }
   # Auto-load the custom TaskBoard dashboard from a ConfigMap.
   sidecar:
     dashboards:
