@@ -1,0 +1,28 @@
+# Minimal custom Semgrep ruleset (SAST). Kept lean so the pipeline runs fast and
+# deterministically offline. In a real project you would also pull the managed
+# rulesets, e.g. `semgrep --config p/python --config p/react`.
+rules:
+  - id: no-hardcoded-sql-fstring
+    languages: [python]
+    severity: WARNING
+    message: >
+      Avoid building SQL with f-strings/% formatting; use parameterized queries
+      or the ORM to prevent SQL injection.
+    patterns:
+      - pattern-either:
+          - pattern: $CUR.execute(f"...")
+          - pattern: $CUR.execute("..." % ...)
+
+  - id: no-debug-true
+    languages: [python]
+    severity: ERROR
+    message: Do not ship with debug=True — it leaks stack traces and enables code exec.
+    patterns:
+      - pattern: debug=True
+
+  - id: no-eval
+    languages: [python]
+    severity: ERROR
+    message: Use of eval() is dangerous and should be avoided.
+    patterns:
+      - pattern: eval(...)

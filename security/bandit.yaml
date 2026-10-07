@@ -1,0 +1,8 @@
+# Bandit configuration — Python SAST for the FastAPI backend.
+# We scan application/backend/app recursively. The assert-used check (B101) is
+# skipped because it is noisy and irrelevant to production app code.
+skips:
+  - B101  # assert_used
+exclude_dirs:
+  - tests
+  - alembic

@@ -1,0 +1,18 @@
+# Gitleaks configuration — secret scanning.
+# Extends the bundled default ruleset (AWS keys, GitHub tokens, private keys, etc.)
+# and adds an allowlist for the known-dummy values used in examples/tests.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allow known dummy / example credentials used for LocalStack and local demos"
+regexes = [
+  '''taskboard:taskboard''',          # local Postgres demo creds
+  '''aws_access_key\s*=\s*"test"''',   # LocalStack dummy key
+  '''aws_secret_key\s*=\s*"test"''',   # LocalStack dummy secret
+  '''AKIAIOSFODNN7EXAMPLE''',          # AWS public example key
+]
+paths = [
+  '''terraform/terraform.tfvars.example''',
+  '''application/backend/.env.example''',
+]
