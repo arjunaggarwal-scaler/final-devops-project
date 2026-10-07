@@ -1,0 +1,49 @@
+# Default values for the TaskBoard Helm chart.
+namespace: taskboard
+
+backend:
+  image: ghcr.io/arjunaggarwal-scaler/final-devops-project-backend
+  tag: local
+  pullPolicy: IfNotPresent
+  replicaCount: 2
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 256Mi }
+
+frontend:
+  image: ghcr.io/arjunaggarwal-scaler/final-devops-project-frontend
+  tag: local
+  pullPolicy: IfNotPresent
+  replicaCount: 2
+  # kube-dns ClusterIP — nginx uses it to resolve the backend Service at runtime.
+  dnsResolver: "10.96.0.10"
+  resources:
+    requests: { cpu: 50m, memory: 32Mi }
+    limits: { cpu: 200m, memory: 128Mi }
+
+imagePullSecrets: []
+
+postgres:
+  enabled: true
+  image: postgres:16-alpine
+  host: taskboard-postgres
+  database: taskboard
+  username: taskboard
+  password: taskboard
+  storage: 2Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  host: taskboard.local
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 50
+
+monitoring:
+  serviceMonitor:
+    enabled: false
+    releaseLabel: kube-prometheus-stack

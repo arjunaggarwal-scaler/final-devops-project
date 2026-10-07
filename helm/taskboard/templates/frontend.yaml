@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "taskboard.fullname" . }}-frontend
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: taskboard-frontend
+spec:
+  replicas: {{ .Values.frontend.replicaCount }}
+  selector:
+    matchLabels:
+      app: taskboard-frontend
+  template:
+    metadata:
+      labels:
+        app: taskboard-frontend
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: frontend
+          image: "{{ .Values.frontend.image }}:{{ .Values.frontend.tag }}"
+          imagePullPolicy: {{ .Values.frontend.pullPolicy }}
+          env:
+            # nginx proxies /api to the in-cluster backend Service.
+            - name: BACKEND_HOST
+              value: "taskboard-backend"
+            - name: DNS_RESOLVER
+              value: {{ .Values.frontend.dnsResolver | quote }}
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet: { path: /, port: 8080 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /, port: 8080 }
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: taskboard-frontend
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: taskboard-frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: taskboard-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080

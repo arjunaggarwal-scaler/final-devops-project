@@ -1,0 +1,13 @@
+# Development overrides: single replica, HPA off, ingress on.
+backend:
+  replicaCount: 1
+frontend:
+  replicaCount: 1
+hpa:
+  enabled: false
+ingress:
+  enabled: true
+  host: taskboard.local
+monitoring:
+  serviceMonitor:
+    enabled: false

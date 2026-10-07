@@ -1,0 +1,19 @@
+# Production overrides: more replicas, HPA on, ServiceMonitor on, real hostname.
+backend:
+  replicaCount: 3
+  resources:
+    requests: { cpu: 200m, memory: 256Mi }
+    limits: { cpu: "1", memory: 512Mi }
+frontend:
+  replicaCount: 3
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 60
+ingress:
+  enabled: true
+  host: taskboard.example.com
+monitoring:
+  serviceMonitor:
+    enabled: true
